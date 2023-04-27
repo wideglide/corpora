@@ -97,14 +97,16 @@ jobs:
     steps:
     - name: Download artifacts
       uses: actions/download-artifact@v3
+      with: 
+        path: builds
 
     - name: Show downloaded files
-      run: ls -R
+      run: ls -R 
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
         name: zlib-builds
-        path: *
+        path: builds/**
         retention-days: 7
 
