@@ -75,7 +75,7 @@ jobs:
       run: cmake --build ${{ matrix.build-dir || '.' }} --config ${{ matrix.build-config || 'RelWithDebInfo' }} --verbose
 
     - name: Run test cases
-      run: ctest -C Release --output-on-failure --max-width 120
+      run: ctest -C RelWithDebInfo --output-on-failure --max-width 120
       working-directory: ${{ matrix.build-dir || '.' }}
 
     - name: Upload artifacts
