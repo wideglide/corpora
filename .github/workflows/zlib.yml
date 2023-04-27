@@ -8,45 +8,49 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Ubuntu GCC
+          - name: Ubuntu-GCC
             os: ubuntu-22.04
             compiler: gcc
+            cflags: -g -O1
 
-          - name: Ubuntu GCC -O3
+          - name: Ubuntu-GCC-O3
             os: ubuntu-22.04
             compiler: gcc
             cflags: -g -O3
 
-          - name: Ubuntu Clang
+          - name: Ubuntu-Clang
             os: ubuntu-22.04
             compiler: clang
 
-          - name: Ubuntu Clang Debug
+          - name: Ubuntu-Clang-Debug
             os: ubuntu-22.04
             compiler: clang
             build-config: Debug
 
-          - name: Windows MSVC Win32
+          - name: Windows-MSVC-Win32
             os: windows-2022
             compiler: cl
             cmake-args: -A Win32
+            cflags: -Zi -O1
 
-          - name: Windows MSVC Win64
+          - name: Windows-MSVC-Win64
             os: windows-2022
             compiler: cl
             cmake-args: -A x64
-            cflags: -Zi -O2
+            cflags: -Zi -O1
 
-          - name: Windows GCC
+          - name: Windows-GCC
             os: windows-2022
             compiler: gcc
             cmake-args: -G Ninja
+            cflags: -g -O1
 
-          - name: macOS Clang
+          - name: macOS-Clang
             os: macos-12
             compiler: clang
+            cflags: -g -O1
 
-          - name: macOS GCC
+          - name: macOS-GCC
             os: macos-12
             compiler: gcc-11
 
@@ -62,13 +66,13 @@ jobs:
         choco install --no-progress ninja ${{ matrix.packages }}
 
     - name: Generate project files
-      run: cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} ${{ matrix.cmake-args }} -D CMAKE_BUILD_TYPE=${{ matrix.build-config || 'Release' }}
+      run: cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} ${{ matrix.cmake-args }} -D CMAKE_BUILD_TYPE=${{ matrix.build-config || 'RelWithDebInfo' }}
       env:
         CC: ${{ matrix.compiler }}
         CFLAGS: ${{ matrix.cflags }}
 
     - name: Compile source code
-      run: cmake --build ${{ matrix.build-dir || '.' }} --config ${{ matrix.build-config || 'Release' }}
+      run: cmake --build ${{ matrix.build-dir || '.' }} --config ${{ matrix.build-config || 'RelWithDebInfo' }} --verbose
 
     - name: Run test cases
       run: ctest -C Release --output-on-failure --max-width 120
@@ -77,11 +81,30 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.name }} (cmake)
+        name: ${{ matrix.name }}
         path: |
           **/zlib.dll
           **/zlib.pdb
           **/libz.dylib
           **/libz.so
+          **/libzlib.dll
+        retention-days: 2
+
+  combine:
+    name: Combine artifacts
+    needs: ci-cmake
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+
+    - name: Show downloaded files
+      run: ls -R
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: zlib-builds
+        path: *
         retention-days: 7
 
