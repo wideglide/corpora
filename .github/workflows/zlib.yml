@@ -64,10 +64,7 @@ jobs:
       with:
         repository: madler/zlib
 
-    - name: Install packages (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        choco install --no-progress ninja ${{ matrix.packages }}
+    - uses: lukka/get-cmake@latest
 
     - name: Setup MSVC-CMD (Windows)
       uses: ilammy/msvc-dev-cmd@v1
