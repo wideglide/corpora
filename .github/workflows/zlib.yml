@@ -30,15 +30,14 @@ jobs:
           - name: Windows-MSVC-Win32
             os: windows-2022
             compiler: cl
-            cmake-args: -A Win32
-            cflags: -Zi -O1
-            sed: C:\msys64\usr\bin\sed.exe
+            arch: x86
+            cmake-args: -G Ninja
+            sed: C:\msys64\usr\bin\sed.exe -i
 
           - name: Windows-MSVC-Win64
             os: windows-2022
             compiler: cl
-            cmake-args: -A x64
-            cflags: -Zi -O1
+            cmake-args: -G Ninja
             sed: C:\msys64\usr\bin\sed.exe -i
 
           - name: Windows-GCC
@@ -70,10 +69,18 @@ jobs:
       run: |
         choco install --no-progress ninja ${{ matrix.packages }}
 
+    - name: Setup MSVC-CMD (Windows)
+      uses: ilammy/msvc-dev-cmd@v1
+      if: runner.os == 'Windows'
+      with:
+        arch: ${{ matrix.arch || 'x64' }}
+        vsversion: '2022'
+
     - name: Generate project files
       run: |
         cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} ${{ matrix.cmake-args }} -D CMAKE_BUILD_TYPE=${{ matrix.build-config || 'RelWithDebInfo' }}
         ${{ matrix.sed || 'sed -i' }} '/CMAKE_C_FLAGS/s/O[023sd]/O1/' ${{ matrix.build-dir || '.' }}/CMakeCache.txt
+        ninja --version || echo NO NINJA
       env:
         CC: ${{ matrix.compiler }}
         CFLAGS: ${{ matrix.cflags }}
@@ -114,7 +121,7 @@ jobs:
         path: builds
 
     - name: Show downloaded files
-      run: ls -R 
+      run: find builds -type f -ls
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
