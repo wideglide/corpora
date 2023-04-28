@@ -31,19 +31,16 @@ jobs:
             os: windows-2022
             compiler: cl
             arch: x86
-            cmake-args: -G Ninja
             sed: C:\msys64\usr\bin\sed.exe -i
 
           - name: Windows-MSVC-Win64
             os: windows-2022
             compiler: cl
-            cmake-args: -G Ninja
             sed: C:\msys64\usr\bin\sed.exe -i
 
           - name: Windows-GCC
             os: windows-2022
             compiler: gcc
-            cmake-args: -G Ninja
             cflags: -g -O1
             sed: C:\msys64\usr\bin\sed.exe -i
 
@@ -75,7 +72,7 @@ jobs:
 
     - name: Generate project files
       run: |
-        cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} ${{ matrix.cmake-args }} -D CMAKE_BUILD_TYPE=${{ matrix.build-config || 'RelWithDebInfo' }}
+        cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} -G Ninja -D CMAKE_BUILD_TYPE=${{ matrix.build-config || 'RelWithDebInfo' }}
         ${{ matrix.sed || 'sed -i' }} '/CMAKE_C_FLAGS/s/O[023sd]/O1/' ${{ matrix.build-dir || '.' }}/CMakeCache.txt
         ninja --version || echo NO NINJA
       env:
@@ -83,7 +80,7 @@ jobs:
         CFLAGS: ${{ matrix.cflags }}
 
     - name: Compile source code
-      run: cmake --build ${{ matrix.build-dir || '.' }} --config ${{ matrix.build-config || 'RelWithDebInfo' }} --verbose
+      run: cmake --build ${{ matrix.build-dir || '.' }} --verbose
 
     - name: Save debug info
       if: runner.os == 'macOS'
