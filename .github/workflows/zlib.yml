@@ -2,57 +2,32 @@ name: zlib-CMake
 on: [push]
 jobs:
   ci-cmake:
-    name: ${{ matrix.name }}
+    name: ${{ matrix.os }}_${{ matrix.arch }}_${{ maxrix.compiler }}_${{ matrix.opt }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-22.04, windows-2022, macos-12]
+        compiler: [gcc, clang]
+        opt: [O1, O2]
+        arch: [x86_64]
+        exclude:
+          - os: windows-2022
+            compiler: clang
         include:
-          - name: Ubuntu-GCC
-            os: ubuntu-22.04
-            compiler: gcc
-            cflags: -g -O1
-
-          - name: Ubuntu-GCC-O3
-            os: ubuntu-22.04
-            compiler: gcc
-            cflags: -g -O3
-
-          - name: Ubuntu-Clang
-            os: ubuntu-22.04
-            compiler: clang
-
-          - name: Ubuntu-Clang-Debug
-            os: ubuntu-22.04
-            compiler: clang
-            build-config: Debug
-
-          - name: Windows-MSVC-Win32
-            os: windows-2022
+          - os: windows-2022
             compiler: cl
             arch: x86
             sed: C:\msys64\usr\bin\sed.exe -i
 
-          - name: Windows-MSVC-Win64
-            os: windows-2022
+          - os: windows-2022
             compiler: cl
             sed: C:\msys64\usr\bin\sed.exe -i
 
-          - name: Windows-GCC
-            os: windows-2022
-            compiler: gcc
-            cflags: -g -O1
+          - os: windows-2022
             sed: C:\msys64\usr\bin\sed.exe -i
 
-          - name: macOS-Clang
-            os: macos-12
-            compiler: clang
-            cflags: -g -O1
-            sed: sed -i '' -e
-
-          - name: macOS-GCC
-            os: macos-12
-            compiler: gcc-11
+          - os: macos-12
             sed: sed -i '' -e
 
     steps:
@@ -72,12 +47,12 @@ jobs:
 
     - name: Generate project files
       run: |
+        ${{ matrix.compiler --version }}
         cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} -G Ninja -D CMAKE_BUILD_TYPE=${{ matrix.build-config || 'RelWithDebInfo' }}
-        ${{ matrix.sed || 'sed -i' }} '/CMAKE_C_FLAGS/s/O[023sd]/O1/' ${{ matrix.build-dir || '.' }}/CMakeCache.txt
+        ${{ matrix.sed || 'sed -i' }} '/CMAKE_C_FLAGS/s/O[023sd]/${{ matrix.opt }}/' ${{ matrix.build-dir || '.' }}/CMakeCache.txt
         ninja --version || echo NO NINJA
       env:
         CC: ${{ matrix.compiler }}
-        CFLAGS: ${{ matrix.cflags }}
 
     - name: Compile source code
       run: cmake --build ${{ matrix.build-dir || '.' }} --verbose
@@ -85,7 +60,7 @@ jobs:
     - name: Save debug info
       if: runner.os == 'macOS'
       run: |
-        dsymutil libz.dylib
+        dsymutil --flat libz.dylib
 
     - name: Run test cases
       run: ctest -C RelWithDebInfo --output-on-failure --max-width 120
