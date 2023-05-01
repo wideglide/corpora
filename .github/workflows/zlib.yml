@@ -8,7 +8,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, windows-2022, macos-12]
-        compiler: [gcc, clang]
+        compiler: [gcc-11, clang]
         opt: [O1, O2]
         arch: [x86_64]
         exclude:
@@ -18,10 +18,13 @@ jobs:
           - os: windows-2022
             compiler: cl
             arch: x86
+            opt: O1
             sed: C:\msys64\usr\bin\sed.exe -i
 
           - os: windows-2022
             compiler: cl
+            arch: x86_64
+            opt: O1
             sed: C:\msys64\usr\bin\sed.exe -i
 
           - os: windows-2022
@@ -69,7 +72,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.name }}
+        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
         path: |
           **/zlib.dll
           **/zlib.pdb
