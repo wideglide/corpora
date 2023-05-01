@@ -8,17 +8,23 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, windows-2022, macos-12]
-        compiler: [gcc-11, clang]
+        compiler: [gcc, clang]
         opt: [O1, O2]
         arch: [x86_64]
         exclude:
-          - os: windows-2022
-            compiler: clang
+          - os: macos-12
+            compiler: gcc
         include:
           - os: windows-2022
             compiler: cl
             arch: x86
             opt: O1
+            sed: C:\msys64\usr\bin\sed.exe -i
+
+          - os: windows-2022
+            compiler: cl
+            arch: x86
+            opt: O2
             sed: C:\msys64\usr\bin\sed.exe -i
 
           - os: windows-2022
@@ -31,6 +37,18 @@ jobs:
             sed: C:\msys64\usr\bin\sed.exe -i
 
           - os: macos-12
+            sed: sed -i '' -e
+
+          - os: macos-12
+            compiler: gcc-11
+            arch: x86_64
+            opt: O1
+            sed: sed -i '' -e
+
+          - os: macos-12
+            compiler: gcc-11
+            arch: x86_64
+            opt: O2
             sed: sed -i '' -e
 
     steps:
