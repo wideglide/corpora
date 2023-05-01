@@ -82,6 +82,7 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         dsymutil --flat libz.dylib
+        dsymutil libz.dylib
 
     - name: Run test cases
       run: ctest -C RelWithDebInfo --output-on-failure --max-width 120
@@ -96,6 +97,7 @@ jobs:
           **/zlib.pdb
           **/libz*.dylib
           **/libz.dylib.dSYM
+          **/libz.dylib.dwarf
           **/libz.so
           **/libzlib.dll
         retention-days: 2
