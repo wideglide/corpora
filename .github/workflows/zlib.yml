@@ -2,7 +2,7 @@ name: zlib-CMake
 on: [push]
 jobs:
   ci-cmake:
-    name: ${{ matrix.os }}_${{ matrix.arch }}_${{ maxrix.compiler }}_${{ matrix.opt }}
+    name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
