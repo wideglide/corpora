@@ -1,0 +1,96 @@
+# Copyright 2021-2022 The OpenSSL Project Authors. All Rights Reserved.
+#
+# Licensed under the Apache License 2.0 (the "License").  You may not use
+# this file except in compliance with the License.  You can obtain a copy
+# in the file LICENSE in the source distribution or at
+# https://www.openssl.org/source/license.html
+
+name: OpenSSL
+
+on: [push]
+
+permissions:
+  contents: read
+
+jobs:
+  unix:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-12, ubuntu-22.04]
+        compiler: [gcc-11, clang]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout openssl
+      uses: actions/checkout@v3
+      with:
+        repository: openssl/openssl
+        path: openssl
+        ref: openssl-3.0.8
+    - name: config
+      run: |
+        ./config --banner=Configured \
+            -Wall -Werror --strict-warnings enable-fips
+      env:
+        CC: ${{ matrix.compiler }}
+        CFLAGS: -g -O1
+
+    - name: config dump
+      run: ./configdata.pm --dump
+    - name: build
+      run: make -s -j4
+    - name: make test
+      run: make test HARNESS_JOBS=${HARNESS_JOBS:-4}
+  windows:
+    strategy:
+      matrix:
+        include:
+          - name: Windows MSVC Win64
+            os: windows-2022
+            compiler: cl
+            configure_name: VC-WIN64A
+            arch: amd64
+          - name: Windows MSVC Win32
+            os: windows-2022
+            compiler: cl
+            configure_name: VC-WIN32-masm
+            arch: amd64_x86
+          - name: Windows MSVC WinArm64
+            os: windows-2022
+            compiler: cl
+            configure_name: VC-WIN64-ARM
+            arch: amd64_arm64
+    name: ${{ matrix.name }}
+    runs-on: ${{matrix.os}}
+    steps:
+    - name: Checkout openssl
+      uses: actions/checkout@v3
+      with:
+        repository: openssl/openssl
+        path: openssl
+        ref: openssl-3.0.8
+
+    - uses: shogo82148/actions-setup-perl@v1
+    - uses: ilammy/setup-nasm@v1
+    - uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ matrix.arch }}
+
+    - name: prepare the build directory
+      run: mkdir openssl/_build
+
+    - name: config
+      working-directory: openssl/_build
+      run: |
+        perl ..\Configure --banner=Configured no-makedepend no-shared no-fips VC-WIN64A-masm
+        perl configdata.pm --dump
+      env:
+        CFLAGS: /Zi /O1
+
+    - name: build
+      working-directory: openssl/_build
+      run: nmake /S
+
+    - name: test
+      working-directory: _build
+      run: nmake test VERBOSE_FAILURE=yes HARNESS_JOBS=4
