@@ -27,19 +27,24 @@ jobs:
         repository: openssl/openssl
         path: openssl
         ref: openssl-3.0.8
+
+    - name: prepare the build directory
+      run: mkdir openssl/_build
+
     - name: config
+      working-directory: openssl/_build
       run: |
-        ./config --banner=Configured \
+        ../config --banner=Configured \
             -Wall -Werror --strict-warnings enable-fips
+        ./configdata.pm --dump
       env:
         CC: ${{ matrix.compiler }}
-        CFLAGS: -g -O1
 
-    - name: config dump
-      run: ./configdata.pm --dump
     - name: build
+      working-directory: openssl/_build
       run: make -s -j4
     - name: make test
+      working-directory: openssl/_build
       run: make test HARNESS_JOBS=${HARNESS_JOBS:-4}
   windows:
     strategy:
@@ -82,14 +87,12 @@ jobs:
     - name: config
       working-directory: openssl/_build
       run: |
-        perl ..\Configure --banner=Configured no-makedepend no-shared no-fips VC-WIN64A-masm
+        perl ..\Configure --banner=Configured no-makedepend no-shared no-fips ${{ matrix.configure_name }}
         perl configdata.pm --dump
-      env:
-        CFLAGS: /Zi /O1
 
     - name: build
       working-directory: openssl/_build
-      run: nmake /S
+      run: nmake /NOLOGO
 
     - name: test
       working-directory: _build
