@@ -1,5 +1,5 @@
 name: zlib-CMake
-on: [push]
+on: [workflow_dispatch]
 jobs:
   ci-cmake:
     name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}

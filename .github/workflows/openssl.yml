@@ -48,6 +48,7 @@ jobs:
       run: make test HARNESS_JOBS=${HARNESS_JOBS:-4}
   windows:
     strategy:
+      fail-fast: false
       matrix:
         include:
           - name: Windows MSVC Win64
@@ -58,7 +59,7 @@ jobs:
           - name: Windows MSVC Win32
             os: windows-2022
             compiler: cl
-            configure_name: VC-WIN32-masm
+            configure_name: VC-WIN32
             arch: amd64_x86
           - name: Windows MSVC WinArm64
             os: windows-2022
