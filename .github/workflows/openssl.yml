@@ -22,6 +22,7 @@ jobs:
         os: [macos-12, ubuntu-22.04]
         compiler: [gcc-11, clang]
         arch: [x86_64]
+        opt: [O2]
     steps:
     - name: Checkout openssl
       uses: actions/checkout@v3
@@ -37,31 +38,32 @@ jobs:
       working-directory: openssl/_build
       run: |
         ../config --banner=Configured \
-            -Wall -Werror --strict-warnings enable-fips
+            -Wall -Werror --strict-warnings enable-fips shared \
+            -g -${{ matrix.opt }}
         ./configdata.pm --dump
       env:
         CC: ${{ matrix.compiler }}
 
     - name: build
       working-directory: openssl/_build
-      run: make -s -j4
+      run: make -j4
     - name: make test
       working-directory: openssl/_build
       run: make test HARNESS_JOBS=${HARNESS_JOBS:-4}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
-      working-directory: openssl/_build
       with:
         name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}
         path: |
-          **/openssl*.dll
-          **/openssl*.exe
-          **/openssl*.pdb
-          **/openssl*.dylib
-          **/openssl*.dylib.dSYM
-          **/openssl*.dylib.dwarf
-          **/openssl*.so
+          openssl/_build/**/libcrypto*.dylib
+          openssl/_build/**/libssl*.dylib
+          openssl/_build/**/libcrypto*.dylib.dSYM
+          openssl/_build/**/libssl*.dylib.dSYM
+          openssl/_build/**/libcrypto*.dylib.dwarf
+          openssl/_build/**/libssl*.dylib.dwarf
+          openssl/_build/**/libcrypto*.so
+          openssl/_build/**/libssl*.so
         retention-days: 2
 
   windows:
@@ -74,11 +76,13 @@ jobs:
             compiler: cl
             configure_name: VC-WIN64A
             arch: amd64
+            opt: O1
           - name: Windows MSVC Win32
             os: windows-2022
             compiler: cl
             configure_name: VC-WIN32
             arch: amd64_x86
+            opt: O1
     name: ${{ matrix.name }}
     runs-on: ${{matrix.os}}
     steps:
@@ -101,7 +105,7 @@ jobs:
     - name: config
       working-directory: openssl/_build
       run: |
-        perl ..\Configure --banner=Configured no-makedepend no-shared no-fips ${{ matrix.configure_name }}
+        perl ..\Configure --banner=Configured no-makedepend shared no-fips ${{ matrix.configure_name }} /${{ matrix.opt }} /Zi /nologo
         perl configdata.pm --dump
 
     - name: build
@@ -114,16 +118,16 @@ jobs:
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
-      working-directory: openssl/_build
       with:
         name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}
         path: |
-          **/openssl*.dll
-          **/openssl*.exe
-          **/openssl*.pdb
-          **/openssl*.dylib
-          **/openssl*.dylib.dSYM
-          **/openssl*.dylib.dwarf
-          **/openssl*.so
+          openssl/_build/**/libcrypto*.dll
+          openssl/_build/**/libssl*.dll
+          openssl/_build/**/openssl*.exe
+          openssl/_build/**/openssl*.pdb
+          openssl/_build/**/openssl*.dylib
+          openssl/_build/**/openssl*.dylib.dSYM
+          openssl/_build/**/openssl*.dylib.dwarf
+          openssl/_build/**/openssl*.so
         retention-days: 2
 
