@@ -44,7 +44,7 @@ jobs:
       with:
         repository: curl/curl
 
-    - run: cmake -S. -Bbuild -GNinja ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    - run: cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
       name: 'cmake generate'
 
     - run: cmake --build build --verbose
@@ -108,14 +108,14 @@ jobs:
 
     - run: |
         cmake --version
-        cmake -S. -Bbuild -GNinja -DCMAKE_INSTALL_PREFIX=./install ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF -DCMAKE_INSTALL_PREFIX=./install ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
         ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{ matrix.opt }}/' build/CMakeCache.txt
       name: 'cmake generate'
 
     - run: cmake --build build --verbose
       name: 'cmake build'
 
-    - run: cmake --verbose --install build
+    - run: cmake --install build --verbose
       name: 'cmake install'
 
     - name: Upload artifacts
