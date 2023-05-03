@@ -54,10 +54,10 @@ jobs:
       if: runner.os == 'macOS'
       working-directory: build
       run: |
-        dsymutil --flat libcurl.dylib
-        dsymutil libcurl.dylib
-        dsymutil --flag curl
-        dsymutil curl
+        dsymutil --flat lib/libcurl.dylib
+        dsymutil lib/libcurl.dylib
+        dsymutil --flat src/curl
+        dsymutil src/curl
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
@@ -107,14 +107,15 @@ jobs:
         repository: curl/curl
 
     - run: |
-        cmake -S. -Bbuild -GNinja ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        cmake --version
+        cmake -S. -Bbuild -GNinja -DCMAKE_INSTALL_PREFIX=./install ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
         ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{ matrix.opt }}/' build/CMakeCache.txt
       name: 'cmake generate'
 
     - run: cmake --build build --verbose
       name: 'cmake build'
 
-    - run: cmake --verbose --install build --prefix ./install
+    - run: cmake --verbose --install build
       name: 'cmake install'
 
     - name: Upload artifacts
