@@ -30,12 +30,6 @@ jobs:
     steps:
     - uses: lukka/get-cmake@latest
 
-    - run: echo libtool autoconf automake pkg-config ${{ matrix.build.install }} | xargs -Ix -n1 echo brew '"x"' > /tmp/Brewfile
-      name: 'brew bundle'
-
-    - run: "while [[ $? == 0 ]]; do for i in 1 2 3; do brew update && brew bundle install --no-lock --file /tmp/Brewfile && break 2 || { echo Error: wait to try again; sleep 10; } done; false Too many retries; done"
-      name: 'brew install'
-
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
@@ -60,7 +54,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
+        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}_${{ matrix.build.name }}
         path: |
           build/**/libcurl*.dylib
           build/**/libcurl.dylib.dSYM
@@ -76,7 +70,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         arch: [x86_64]
-        opt: [O1]
+        opt: [O1, O2]
         compiler:
         - CC: clang
           CXX: clang++
@@ -86,13 +80,18 @@ jobs:
           CFLAGS: "-Wno-error=undef -Wno-error=conversion -g"
         build:
         - name: OpenSSL
-          install: nghttp2 libssl-dev
+          install: libssl-dev
           generate: -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON
         - name: libssh2
           install: libssl-dev libssh2-1-dev zlib1g-dev libnghttp2-dev
           generate: -DCURL_USE_LIBSSH2=ON
     steps:
     - uses: lukka/get-cmake@latest
+
+    - name: 'install prereqs'
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get install -y ${{ matrix.build.install }}
 
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -115,10 +114,31 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
+        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}_${{ maxtrix.build.name }}
         path: |
           build/lib/libcurl.so
           build/src/curl
           install/lib/libcurl.so
           install/bin/curl
         retention-days: 2
+
+  combine:
+    name: Combine artifacts
+    needs: [cmake_linux, cmake_macos]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: curl
+
+    - name: Show downloaded files
+      run: find curl -type f -ls
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: curl-builds
+        path: curl/**
+        retention-days: 7
+
