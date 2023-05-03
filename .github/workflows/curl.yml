@@ -2,7 +2,7 @@ name: curl-CMake
 on: [push]
 jobs:
   cmake_macos:
-    name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
+    name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler.CC }}_${{ matrix.opt }}_${{ matrix.build.name }}
     runs-on: ${{ matrix.os }}
     env: ${{ matrix.compiler }}
     strategy:
@@ -10,6 +10,7 @@ jobs:
       matrix:
         os: [macos-12]
         arch: [x86_64]
+        opt: [O2]
         compiler:
         - name: Clang
           CC: clang
@@ -43,14 +44,15 @@ jobs:
       with:
         repository: curl/curl
 
-    - run: cmake -S. -Bbuild ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    - run: cmake -S. -Bbuild -GNinja ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
       name: 'cmake generate'
 
-    - run: cmake --build build
+    - run: cmake --build build --verbose
       name: 'cmake build'
 
     - name: Save debug info
       if: runner.os == 'macOS'
+      working-directory: build
       run: |
         dsymutil --flat libcurl.dylib
         dsymutil libcurl.dylib
@@ -62,14 +64,13 @@ jobs:
       with:
         name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
         path: |
-          **/libcurl*.dylib
-          **/libcurl.dylib.dSYM
-          **/libcurl.dylib.dwarf
-          **/libcurl.so
+          build/**/libcurl*.dylib
+          build/**/libcurl.dylib.dSYM
+          build/**/libcurl.dylib.dwarf
         retention-days: 2
 
   cmake_linux:
-    name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
+    name: ${{ format('{0}_{1}_{2}_{3}{4}', matrix.os, matrix.arch, matrix.compiler.CC, matrix.opt, matrix.build.name) }}
     runs-on: ${{ matrix.os }}
     env: ${{ matrix.compiler }}
     strategy:
@@ -77,6 +78,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04]
         arch: [x86_64]
+        opt: [O1]
         compiler:
         - CC: clang
           CXX: clang++
@@ -98,24 +100,28 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install libtool autoconf automake pkg-config stunnel4 libpsl-dev libbrotli-dev libzstd-dev ${{ matrix.build.install }}
-        sudo python3 -m pip install impacket
 
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
         repository: curl/curl
 
-    - run: cmake -S. -Bbuild -GNinja ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    - run: |
+        cmake -S. -Bbuild -GNinja ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{ matrix.opt }}/' build/CMakeCache.txt
       name: 'cmake generate'
 
-    - run: cmake --build build
+    - run: cmake --build build --verbose
       name: 'cmake build'
+
+    - run: cmake --verbose --install build --prefix ./install
+      name: 'cmake install'
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
         name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
         path: |
-          **/libcurl.so
-          **/curl
+          build/lib/libcurl.so
+          build/src/curl
         retention-days: 2
