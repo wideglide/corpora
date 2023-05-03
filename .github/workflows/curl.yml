@@ -6,7 +6,6 @@ jobs:
     name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler.CC }}_${{ matrix.opt }}_${{ matrix.build.name }}
     runs-on: ${{ matrix.os }}
     env:
-      ${{ matrix.compiler }}
       DEVELOPER_DIR: /Applications/Xcode_14.0.1.app/Contents/Developer
     strategy:
       fail-fast: false
@@ -44,6 +43,7 @@ jobs:
 
     - run: cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
       name: 'cmake generate'
+      env: ${{ matrix.compiler }}
 
     - run: cmake --build build --verbose
       name: 'cmake build'
