@@ -53,8 +53,13 @@ jobs:
 
     - name: Save debug info
       if: runner.os == 'macOS'
+      working-directory: openssl/_build
       run: |
         dsymutil --flat *.dylib
+        dsymutil *.dylib
+        ls -lah *.dylib.*
+        dsymutil --flat libssl.dylib
+        dsymutil libssl.dylib
 
     - name: make test
       if: ${{ env.RUN_TESTS == 'true' }}
