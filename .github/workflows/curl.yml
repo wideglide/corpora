@@ -114,7 +114,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}_${{ maxtrix.build.name }}
+        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}_${{ matrix.build.name }}
         path: |
           build/lib/libcurl.so
           build/src/curl
