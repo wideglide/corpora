@@ -11,10 +11,12 @@ jobs:
         os: [macos-12]
         arch: [x86_64]
         compiler:
-        - CC: clang
+        - name: Clang
+          CC: clang
           CXX: clang++
           CFLAGS: "-mmacosx-version-min=10.15 -Wno-deprecated-declarations -g"
-        - CC: gcc-11
+        - name: GCC
+          CC: gcc-11
           CXX: g++-11
           CFLAGS: "-mmacosx-version-min=10.15 -Wno-error=undef -Wno-error=conversion -g"
         build:
@@ -25,6 +27,8 @@ jobs:
           install: nghttp2 openssl libssh2
           generate: -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCURL_USE_LIBSSH2=ON
     steps:
+    - uses: lukka/get-cmake@latest
+
     - run: echo libtool autoconf automake pkg-config ${{ matrix.build.install }} | xargs -Ix -n1 echo brew '"x"' > /tmp/Brewfile
       name: 'brew bundle'
 
@@ -39,11 +43,30 @@ jobs:
       with:
         repository: curl/curl
 
-    - run: cmake -S. -Bbuild -DCURL_WERROR=ON -DPICKY_COMPILER=ON ${{ matrix.build.generate }}
+    - run: cmake -S. -Bbuild ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
       name: 'cmake generate'
 
     - run: cmake --build build
       name: 'cmake build'
+
+    - name: Save debug info
+      if: runner.os == 'macOS'
+      run: |
+        dsymutil --flat libcurl.dylib
+        dsymutil libcurl.dylib
+        dsymutil --flag curl
+        dsymutil curl
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
+        path: |
+          **/libcurl*.dylib
+          **/libcurl.dylib.dSYM
+          **/libcurl.dylib.dwarf
+          **/libcurl.so
+        retention-days: 2
 
   cmake_linux:
     name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
@@ -69,10 +92,12 @@ jobs:
           install: nghttp2 libssl-dev libssh2-1-dev zlib1g-dev libnghttp2-dev
           generate: -DCURL_USE_LIBSSH2=ON
     steps:
+    - uses: lukka/get-cmake@latest
+
     - name: 'install prereqs and impacket'
       run: |
         sudo apt-get update
-        sudo apt-get install libtool autoconf automake pkg-config stunnel4 libpsl-dev libbrotli-dev libzstd-dev ${{ matrix.build.install_packages }}
+        sudo apt-get install libtool autoconf automake pkg-config stunnel4 libpsl-dev libbrotli-dev libzstd-dev ${{ matrix.build.install }}
         sudo python3 -m pip install impacket
 
     - name: Checkout repository
@@ -80,8 +105,17 @@ jobs:
       with:
         repository: curl/curl
 
-    - run: cmake -S. -Bbuild -DCURL_WERROR=ON ${{ matrix.build.generate }}
+    - run: cmake -S. -Bbuild -GNinja ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
       name: 'cmake generate'
 
     - run: cmake --build build
       name: 'cmake build'
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
+        path: |
+          **/libcurl.so
+          **/curl
+        retention-days: 2
