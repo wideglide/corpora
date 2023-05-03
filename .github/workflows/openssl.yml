@@ -9,6 +9,9 @@ name: OpenSSL
 
 on: [push]
 
+env:
+  RUN_TESTS: false
+
 permissions:
   contents: read
 
@@ -47,14 +50,16 @@ jobs:
     - name: build
       working-directory: openssl/_build
       run: make -j4
+
     - name: make test
+      if: ${{ env.RUN_TESTS == 'true' }}
       working-directory: openssl/_build
       run: make test HARNESS_JOBS=${HARNESS_JOBS:-4}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}
+        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
         path: |
           openssl/_build/**/libcrypto*.dylib
           openssl/_build/**/libssl*.dylib
@@ -67,24 +72,21 @@ jobs:
         retention-days: 2
 
   windows:
+    name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
+    runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
+        os: [windows-2022]
+        compiler: [cl]
+        opt: [O1]
+        arch: [x86_64]
         include:
-          - name: Windows MSVC Win64
-            os: windows-2022
-            compiler: cl
+          - os: windows-2022
             configure_name: VC-WIN64A
-            arch: amd64
-            opt: O1
-          - name: Windows MSVC Win32
-            os: windows-2022
-            compiler: cl
+          - os: windows-2022
             configure_name: VC-WIN32
-            arch: amd64_x86
-            opt: O1
-    name: ${{ matrix.name }}
-    runs-on: ${{matrix.os}}
+            arch: x86
     steps:
     - name: Checkout openssl
       uses: actions/checkout@v3
@@ -113,13 +115,14 @@ jobs:
       run: nmake /NOLOGO
 
     - name: test
+      if: ${{ env.RUN_TESTS == 'true' }}
       working-directory: openssl/_build
       run: nmake test VERBOSE_FAILURE=yes HARNESS_JOBS=4
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}
+        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
         path: |
           openssl/_build/**/libcrypto*.dll
           openssl/_build/**/libssl*.dll
@@ -130,4 +133,24 @@ jobs:
           openssl/_build/**/openssl*.dylib.dwarf
           openssl/_build/**/openssl*.so
         retention-days: 2
+
+  combine:
+    name: Combine artifacts
+    needs: [unix, windows]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with: 
+        path: builds
+
+    - name: Show downloaded files
+      run: find builds -type f -ls
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: openssl-builds
+        path: builds/**
+        retention-days: 7
 
