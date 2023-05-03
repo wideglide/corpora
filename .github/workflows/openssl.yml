@@ -51,6 +51,11 @@ jobs:
       working-directory: openssl/_build
       run: make -j4
 
+    - name: Save debug info
+      if: runner.os == 'macOS'
+      run: |
+        dsymutil --flat *.dylib
+
     - name: make test
       if: ${{ env.RUN_TESTS == 'true' }}
       working-directory: openssl/_build
@@ -80,7 +85,7 @@ jobs:
         os: [windows-2022]
         compiler: [cl]
         opt: [O1]
-        arch: [x86_64]
+        arch: [x86_64, x86]
         include:
           - os: windows-2022
             configure_name: VC-WIN64A
@@ -125,13 +130,11 @@ jobs:
         name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
         path: |
           openssl/_build/**/libcrypto*.dll
+          openssl/_build/**/libcrypto*.pdb
           openssl/_build/**/libssl*.dll
+          openssl/_build/**/libssl*.pdb
           openssl/_build/**/openssl*.exe
           openssl/_build/**/openssl*.pdb
-          openssl/_build/**/openssl*.dylib
-          openssl/_build/**/openssl*.dylib.dSYM
-          openssl/_build/**/openssl*.dylib.dwarf
-          openssl/_build/**/openssl*.so
         retention-days: 2
 
   combine:
@@ -142,15 +145,15 @@ jobs:
     - name: Download artifacts
       uses: actions/download-artifact@v3
       with: 
-        path: builds
+        path: openssl
 
     - name: Show downloaded files
-      run: find builds -type f -ls
+      run: find openssl -type f -ls
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
         name: openssl-builds
-        path: builds/**
+        path: openssl/**
         retention-days: 7
 
