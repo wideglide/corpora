@@ -7,7 +7,7 @@
 
 name: OpenSSL
 
-on: [push]
+on: [workflow_dispatch]
 
 env:
   RUN_TESTS: false

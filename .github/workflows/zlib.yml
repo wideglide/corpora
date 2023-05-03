@@ -37,19 +37,14 @@ jobs:
             sed: C:\msys64\usr\bin\sed.exe -i
 
           - os: macos-12
-            sed: sed -i '' -e
-
-          - os: macos-12
             compiler: gcc-11
             arch: x86_64
             opt: O1
-            sed: sed -i '' -e
 
           - os: macos-12
             compiler: gcc-11
             arch: x86_64
             opt: O2
-            sed: sed -i '' -e
 
     steps:
     - name: Checkout repository
@@ -70,7 +65,7 @@ jobs:
       run: |
         ${{ matrix.compiler }} --version
         cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} -G Ninja -D CMAKE_BUILD_TYPE=${{ matrix.build-config || 'RelWithDebInfo' }}
-        ${{ matrix.sed || 'sed -i' }} '/CMAKE_C_FLAGS/s/O[023sd]/${{ matrix.opt }}/' ${{ matrix.build-dir || '.' }}/CMakeCache.txt
+        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[023sd]/${{ matrix.opt }}/' ${{ matrix.build-dir || '.' }}/CMakeCache.txt
         ninja --version || echo NO NINJA
       env:
         CC: ${{ matrix.compiler }}
