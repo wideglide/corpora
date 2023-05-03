@@ -25,7 +25,7 @@ jobs:
         os: [macos-12, ubuntu-22.04]
         compiler: [gcc-11, clang]
         arch: [x86_64]
-        opt: [O2]
+        opt: [O1, O2]
     steps:
     - name: Checkout openssl
       uses: actions/checkout@v3
@@ -37,12 +37,12 @@ jobs:
     - name: prepare the build directory
       run: mkdir openssl/_build
 
-    - name: config
+    - name: configure
       working-directory: openssl/_build
       run: |
-        ../config --banner=Configured \
-            -Wall -Werror --strict-warnings enable-fips shared \
+        ../config --banner=Configured enable-fips shared \
             -g -${{ matrix.opt }}
+        sed -i -e '/FLAGS/s/-O[0123s]/-${{ matrix.opt }}/' ${{ matrix.build-dir || '.' }}/Makefile
         ./configdata.pm --dump
       env:
         CC: ${{ matrix.compiler }}
@@ -58,8 +58,6 @@ jobs:
         dsymutil --flat *.dylib
         dsymutil *.dylib
         ls -lah *.dylib.*
-        dsymutil --flat libssl.dylib
-        dsymutil libssl.dylib
 
     - name: make test
       if: ${{ env.RUN_TESTS == 'true' }}
@@ -71,12 +69,12 @@ jobs:
       with:
         name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
         path: |
-          openssl/_build/**/libcrypto*.dylib
-          openssl/_build/**/libssl*.dylib
-          openssl/_build/**/libcrypto*.dylib.dSYM
-          openssl/_build/**/libssl*.dylib.dSYM
-          openssl/_build/**/libcrypto*.dylib.dwarf
-          openssl/_build/**/libssl*.dylib.dwarf
+          openssl/_build/**/libcrypto.dylib
+          openssl/_build/**/libssl.dylib
+          openssl/_build/**/libcrypto.dylib.dSYM
+          openssl/_build/**/libssl.dylib.dSYM
+          openssl/_build/**/libcrypto.dylib.dwarf
+          openssl/_build/**/libssl.dylib.dwarf
           openssl/_build/**/libcrypto*.so
           openssl/_build/**/libssl*.so
         retention-days: 2
@@ -114,7 +112,7 @@ jobs:
     - name: prepare the build directory
       run: mkdir openssl/_build
 
-    - name: config
+    - name: configure
       working-directory: openssl/_build
       run: |
         perl ..\Configure --banner=Configured no-makedepend shared no-fips ${{ matrix.configure_name }} /${{ matrix.opt }} /Zi /nologo
@@ -134,10 +132,10 @@ jobs:
       with:
         name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
         path: |
-          openssl/_build/**/libcrypto*.dll
-          openssl/_build/**/libcrypto*.pdb
-          openssl/_build/**/libssl*.dll
-          openssl/_build/**/libssl*.pdb
+          openssl/_build/libcrypto*.dll
+          openssl/_build/libcrypto*.pdb
+          openssl/_build/libssl*.dll
+          openssl/_build/libssl*.pdb
           openssl/_build/**/openssl*.exe
           openssl/_build/**/openssl*.pdb
         retention-days: 2

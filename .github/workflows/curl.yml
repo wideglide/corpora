@@ -1,0 +1,56 @@
+name: curl-CMake
+on: [workflow_dispatch]
+jobs:
+  cmake:
+    name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
+    runs-on: ${{ matrix.os }}
+    env: ${{ matrix.compiler }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-12]
+        arch: [x86_64]
+        compiler:
+        - CC: clang
+          CXX: clang++
+          CFLAGS: "-mmacosx-version-min=10.15 -Wno-deprecated-declarations"
+        - CC: gcc-11
+          CXX: g++-11
+          CFLAGS: "-mmacosx-version-min=10.15 -Wno-error=undef -Wno-error=conversion"
+        build:
+        - name: OpenSSL
+          install: nghttp2 openssl
+          generate: -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON
+        - name: LibreSSL
+          install: nghttp2 libressl
+          generate: -DOPENSSL_ROOT_DIR=/usr/local/opt/libressl -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON
+        - name: libssh2
+          install: nghttp2 openssl libssh2
+          generate: -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCURL_USE_LIBSSH2=ON
+    steps:
+    - name: Check for packages
+      run: |
+        which libtool
+        which autoconf
+        which automake
+        which pkg-config
+
+    - run: echo libtool autoconf automake pkg-config ${{ matrix.build.install }} | xargs -Ix -n1 echo brew '"x"' > /tmp/Brewfile
+      name: 'brew bundle'
+
+    - run: "while [[ $? == 0 ]]; do for i in 1 2 3; do brew update && brew bundle install --no-lock --file /tmp/Brewfile && break 2 || { echo Error: wait to try again; sleep 10; } done; false Too many retries; done"
+      name: 'brew install'
+
+    - run: python3 -m pip install impacket
+      name: 'pip3 install'
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        repository: curl/curl
+
+    - run: cmake -S. -Bbuild -DCURL_WERROR=ON -DPICKY_COMPILER=ON ${{ matrix.build.generate }}
+      name: 'cmake generate'
+
+    - run: cmake --build build
+      name: 'cmake build'
