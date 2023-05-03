@@ -1,10 +1,13 @@
 name: curl-CMake
 on: [push]
+
 jobs:
   cmake_macos:
     name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler.CC }}_${{ matrix.opt }}_${{ matrix.build.name }}
     runs-on: ${{ matrix.os }}
-    env: ${{ matrix.compiler }}
+    env:
+      ${{ matrix.compiler }}
+      DEVELOPER_DIR: /Applications/Xcode_14.0.1.app/Contents/Developer
     strategy:
       fail-fast: false
       matrix:
@@ -12,12 +15,10 @@ jobs:
         arch: [x86_64]
         opt: [O2]
         compiler:
-        - name: Clang
-          CC: clang
+        - CC: clang
           CXX: clang++
           CFLAGS: "-mmacosx-version-min=10.15 -Wno-deprecated-declarations -g"
-        - name: GCC
-          CC: gcc-11
+        - CC: gcc-11
           CXX: g++-11
           CFLAGS: "-mmacosx-version-min=10.15 -Wno-error=undef -Wno-error=conversion -g"
         build:
@@ -35,9 +36,6 @@ jobs:
 
     - run: "while [[ $? == 0 ]]; do for i in 1 2 3; do brew update && brew bundle install --no-lock --file /tmp/Brewfile && break 2 || { echo Error: wait to try again; sleep 10; } done; false Too many retries; done"
       name: 'brew install'
-
-    - run: python3 -m pip install impacket
-      name: 'pip3 install'
 
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -70,7 +68,7 @@ jobs:
         retention-days: 2
 
   cmake_linux:
-    name: ${{ format('{0}_{1}_{2}_{3}{4}', matrix.os, matrix.arch, matrix.compiler.CC, matrix.opt, matrix.build.name) }}
+    name: ${{ format('{0}_{1}_{2}_{3}_{4}', matrix.os, matrix.arch, matrix.compiler.CC, matrix.opt, matrix.build.name) }}
     runs-on: ${{ matrix.os }}
     env: ${{ matrix.compiler }}
     strategy:
@@ -91,15 +89,10 @@ jobs:
           install: nghttp2 libssl-dev
           generate: -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON
         - name: libssh2
-          install: nghttp2 libssl-dev libssh2-1-dev zlib1g-dev libnghttp2-dev
+          install: libssl-dev libssh2-1-dev zlib1g-dev libnghttp2-dev
           generate: -DCURL_USE_LIBSSH2=ON
     steps:
     - uses: lukka/get-cmake@latest
-
-    - name: 'install prereqs and impacket'
-      run: |
-        sudo apt-get update
-        sudo apt-get install libtool autoconf automake pkg-config stunnel4 libpsl-dev libbrotli-dev libzstd-dev ${{ matrix.build.install }}
 
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -110,6 +103,7 @@ jobs:
         cmake --version
         cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF -DCMAKE_INSTALL_PREFIX=./install ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
         ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{ matrix.opt }}/' build/CMakeCache.txt
+        grep CMAKE_C_FLAGS build/CMakeCache.txt
       name: 'cmake generate'
 
     - run: cmake --build build --verbose
@@ -125,4 +119,6 @@ jobs:
         path: |
           build/lib/libcurl.so
           build/src/curl
+          install/lib/libcurl.so
+          install/bin/curl
         retention-days: 2
