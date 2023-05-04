@@ -64,7 +64,7 @@ jobs:
     - name: Generate project files
       run: |
         ${{ matrix.compiler }} --version
-        cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} -GNinja -DCMAKE_INSTALL_PREFIX=./install -DCMAKE_BUILD_TYPE=${{ matrix.build-config || 'RelWithDebInfo' }}
+        cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} -GNinja -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{ matrix.build-config || 'RelWithDebInfo' }}
         ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{ matrix.opt }}/' ${{ matrix.build-dir || '.' }}/CMakeCache.txt
         ninja --version || echo NO NINJA
       env:
@@ -81,7 +81,7 @@ jobs:
       uses: actions/cache/save@v3
       with:
         path: install
-        key: ${{ steps.cache-zlib-restore.outputs.cache-primary-key }}
+        key: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}_zlib
 
     - name: Save debug info
       if: runner.os == 'macOS'
