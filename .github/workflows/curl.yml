@@ -135,7 +135,6 @@ jobs:
         compiler:
         - CC: cl
           CXX: cl
-          CFLAGS: "-Wno-deprecated-declarations -g"
         - CC: gcc
           CXX: g++
           CFLAGS: "-Wno-error=undef -Wno-error=conversion -g"
