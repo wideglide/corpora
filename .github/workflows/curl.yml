@@ -23,7 +23,7 @@ jobs:
         build:
         - name: OpenSSL
           install: nghttp2 openssl
-          generate: -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON
+          generate: -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON
         - name: libssh2
           install: nghttp2 openssl libssh2
           generate: -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCURL_USE_LIBSSH2=ON
@@ -80,10 +80,10 @@ jobs:
           CFLAGS: "-Wno-error=undef -Wno-error=conversion -g"
         build:
         - name: OpenSSL
-          install: libssl-dev
+          install_ubuntu: libssl-dev
           generate: -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON
         - name: libssh2
-          install: libssl-dev libssh2-1-dev zlib1g-dev libnghttp2-dev
+          install_ubuntu: libssl-dev libssh2-1-dev zlib1g-dev libnghttp2-dev
           generate: -DCURL_USE_LIBSSH2=ON
     steps:
     - uses: lukka/get-cmake@latest
@@ -91,7 +91,7 @@ jobs:
     - name: 'install prereqs'
       if: runner.os == 'Linux'
       run: |
-        sudo apt-get install -y ${{ matrix.build.install }}
+        sudo apt-get install -y ${{ matrix.build.install_ubuntu }}
 
     - name: Checkout repository
       uses: actions/checkout@v3
@@ -118,8 +118,6 @@ jobs:
         path: |
           build/lib/libcurl.so
           build/src/curl
-          install/lib/libcurl.so
-          install/bin/curl
         retention-days: 2
 
   combine:
