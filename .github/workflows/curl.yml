@@ -41,7 +41,7 @@ jobs:
 
     - run: |
         cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF ${{matrix.build.generate}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{matrix.opt}}/' build/CMakeCache.txt
+        sed -i -e '/CMAKE_C_FLAGS/s/O[0123sd]/${{matrix.opt}}/' build/CMakeCache.txt
       name: 'cmake generate'
       env: ${{matrix.compiler}}
 
@@ -107,7 +107,7 @@ jobs:
     - run: |
         cmake --version
         cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF -DCMAKE_INSTALL_PREFIX=./install ${{matrix.build.generate}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{matrix.opt}}/' build/CMakeCache.txt
+        sed -i -e '/CMAKE_C_FLAGS/s/O[0123sd]/${{matrix.opt}}/' build/CMakeCache.txt
         grep CMAKE_C_FLAGS build/CMakeCache.txt
       name: 'cmake generate'
 
@@ -146,11 +146,7 @@ jobs:
         - name: schannel
           generate: -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DCURL_USE_SCHANNEL=ON
         - name: libssh2
-          install_ubuntu: libssl-dev libssh2-1-dev zlib1g-dev libnghttp2-dev
-          generate: -DCURL_USE_LIBSSH2=ON -DZLIB_ROOT=install
-        include:
-          - os: windows-2022
-            sed: C:\msys64\usr\bin\sed.exe -i
+          generate: -DCURL_USE_LIBSSH2=ON -DZLIB_ROOT=install -DOPENSSL_ROOT_DIR=install
     steps:
     - uses: lukka/get-cmake@latest
 
@@ -166,13 +162,19 @@ jobs:
         arch: ${{ matrix.arch || 'x64' }}
         vsversion: '2022'
 
-    - name: Restore cache files
+    - name: Restore cache files (zlib)
       id: cache-zlib-restore
-      if: runner.os == 'Windows'
       uses: actions/cache/restore@v3
       with:
         path: install
         key: zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}_${{matrix.opt}}
+
+    - name: Restore cache files (openssl)
+      id: cache-openssl-restore
+      uses: actions/cache/restore@v3
+      with:
+        path: install
+        key: openssl_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}_${{matrix.opt}}
 
     - run: |
         cmake --version
@@ -199,7 +201,7 @@ jobs:
 
   combine:
     name: Combine artifacts
-    needs: [cmake_linux, cmake_macos]
+    needs: [cmake_linux, cmake_macos, cmake_windows]
     runs-on: ubuntu-latest
     steps:
     - name: Download artifacts
