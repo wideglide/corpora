@@ -1,9 +1,14 @@
 name: zlib-CMake
+
 on: [workflow_dispatch]
+
+env:
+  BUILD_TYPE: RelWithDebInfo
+
 jobs:
   ci-cmake:
-    name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
-    runs-on: ${{ matrix.os }}
+    name: ${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
+    runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
@@ -63,12 +68,12 @@ jobs:
 
     - name: Generate project files
       run: |
-        ${{ matrix.compiler }} --version
-        cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} -GNinja -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{ matrix.build-config || 'RelWithDebInfo' }}
-        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{ matrix.opt }}/' ${{ matrix.build-dir || '.' }}/CMakeCache.txt
+        ${{matrix.compiler}} --version
+        cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} -GNinja -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{matrix.opt}}/' ${{ matrix.build-dir || '.' }}/CMakeCache.txt
         ninja --version || echo NO NINJA
       env:
-        CC: ${{ matrix.compiler }}
+        CC: ${{matrix.compiler}}
 
     - name: Compile source code
       run: cmake --build ${{ matrix.build-dir || '.' }} --verbose
@@ -77,11 +82,12 @@ jobs:
       run: cmake --install ${{ matrix.build-dir || '.' }} --verbose
 
     - name: Save install files
-      id: cache-zlib-save
       uses: actions/cache/save@v3
+      if: runner.os == 'Windows'
+      id: cache-zlib-save
       with:
         path: install
-        key: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}_zlib
+        key: zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
 
     - name: Save debug info
       if: runner.os == 'macOS'
@@ -90,13 +96,13 @@ jobs:
         dsymutil libz.dylib
 
     - name: Run test cases
-      run: ctest -C RelWithDebInfo --output-on-failure --max-width 120
+      run: ctest -C ${{env.BUILD_TYPE}} --output-on-failure --max-width 120
       working-directory: ${{ matrix.build-dir || '.' }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
+        name: ${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
         path: |
           **/zlib.dll
           **/zlib.pdb

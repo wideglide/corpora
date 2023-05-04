@@ -1,10 +1,14 @@
 name: curl-CMake
+
 on: [push]
+
+env:
+  BUILD_TYPE: RelWithDebInfo
 
 jobs:
   cmake_macos:
-    name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler.CC }}_${{ matrix.opt }}_${{ matrix.build.name }}
-    runs-on: ${{ matrix.os }}
+    name: ${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}_${{matrix.opt}}_${{matrix.build.name}}
+    runs-on: ${{matrix.os}}
     env:
       DEVELOPER_DIR: /Applications/Xcode_14.0.1.app/Contents/Developer
     strategy:
@@ -36,10 +40,10 @@ jobs:
         repository: curl/curl
 
     - run: |
-        cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
-        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{ matrix.opt }}/' build/CMakeCache.txt
+        cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF ${{matrix.build.generate}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{matrix.opt}}/' build/CMakeCache.txt
       name: 'cmake generate'
-      env: ${{ matrix.compiler }}
+      env: ${{matrix.compiler}}
 
     - run: cmake --build build --verbose
       name: 'cmake build'
@@ -56,7 +60,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler.CC}}_${{ matrix.opt }}_${{ matrix.build.name }}
+        name: ${{matrix.os}}_${{matrix.arch}}_${{ matrix.compiler.CC}}_${{matrix.opt}}_${{matrix.build.name}}
         path: |
           build/**/libcurl*.dylib
           build/**/libcurl.dylib.dSYM
@@ -65,8 +69,8 @@ jobs:
 
   cmake_linux:
     name: ${{ format('{0}_{1}_{2}_{3}_{4}', matrix.os, matrix.arch, matrix.compiler.CC, matrix.opt, matrix.build.name) }}
-    runs-on: ${{ matrix.os }}
-    env: ${{ matrix.compiler }}
+    runs-on: ${{matrix.os}}
+    env: ${{matrix.compiler}}
     strategy:
       fail-fast: false
       matrix:
@@ -102,8 +106,8 @@ jobs:
 
     - run: |
         cmake --version
-        cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF -DCMAKE_INSTALL_PREFIX=./install ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
-        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{ matrix.opt }}/' build/CMakeCache.txt
+        cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF -DCMAKE_INSTALL_PREFIX=./install ${{matrix.build.generate}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{matrix.opt}}/' build/CMakeCache.txt
         grep CMAKE_C_FLAGS build/CMakeCache.txt
       name: 'cmake generate'
 
@@ -116,7 +120,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler.CC}}_${{ matrix.opt }}_${{ matrix.build.name }}
+        name: ${{matrix.os}}_${{matrix.arch}}_${{ matrix.compiler.CC}}_${{matrix.opt}}_${{matrix.build.name}}
         path: |
           build/lib/libcurl.so
           build/src/curl
@@ -124,8 +128,8 @@ jobs:
 
   cmake_windows:
     name: ${{ format('{0}_{1}_{2}_{3}_{4}', matrix.os, matrix.arch, matrix.compiler.CC, matrix.opt, matrix.build.name) }}
-    runs-on: ${{ matrix.os }}
-    env: ${{ matrix.compiler }}
+    runs-on: ${{matrix.os}}
+    env: ${{matrix.compiler}}
     strategy:
       fail-fast: false
       matrix:
@@ -143,7 +147,7 @@ jobs:
           generate: -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DCURL_USE_SCHANNEL=ON
         - name: libssh2
           install_ubuntu: libssl-dev libssh2-1-dev zlib1g-dev libnghttp2-dev
-          generate: -DCURL_USE_LIBSSH2=ON
+          generate: -DCURL_USE_LIBSSH2=ON -DZLIB_ROOT=install
         include:
           - os: windows-2022
             sed: C:\msys64\usr\bin\sed.exe -i
@@ -164,15 +168,16 @@ jobs:
 
     - name: Restore cache files
       id: cache-zlib-restore
-      uses: actions/cache/save@v3
+      if: runner.os == 'Windows'
+      uses: actions/cache/restore@v3
       with:
         path: install
-        key: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}_zlib
+        key: ${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}_zlib
 
     - run: |
         cmake --version
-        cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF -DCMAKE_INSTALL_PREFIX=install ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
-        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{ matrix.opt }}/' build/CMakeCache.txt
+        cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF -DCMAKE_INSTALL_PREFIX=install ${{matrix.build.generate}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        sed -i -e '/CMAKE_C_FLAGS/s/O[0123sd]/${{matrix.opt}}/' build/CMakeCache.txt
       name: 'cmake generate'
 
     - run: cmake --build build --verbose
@@ -184,7 +189,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler.CC}}_${{ matrix.opt }}_${{ matrix.build.name }}
+        name: ${{matrix.os}}_${{matrix.arch}}_${{ matrix.compiler.CC}}_${{matrix.opt}}_${{matrix.build.name}}
         path: |
           build/**/libcurl.dll
           build/**/libcurl.pdb
