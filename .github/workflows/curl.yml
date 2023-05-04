@@ -172,7 +172,7 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: install
-        key: ${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}_zlib
+        key: zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}_${{matrix.opt}}
 
     - run: |
         cmake --version

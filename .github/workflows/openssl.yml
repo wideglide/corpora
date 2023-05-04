@@ -17,8 +17,8 @@ permissions:
 
 jobs:
   unix:
-    name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
-    runs-on: ${{ matrix.os }}
+    name: ${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
+    runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
       matrix:
@@ -41,11 +41,11 @@ jobs:
       working-directory: openssl/_build
       run: |
         ../config --banner=Configured enable-fips shared \
-            -g -${{ matrix.opt }}
-        sed -i -e '/FLAGS/s/-O[0123s]/-${{ matrix.opt }}/' ${{ matrix.build-dir || '.' }}/Makefile
+            -g -${{matrix.opt}}
+        sed -i -e '/FLAGS/s/-O[0123s]/-${{matrix.opt}}/' ${{ matrix.build-dir || '.' }}/Makefile
         ./configdata.pm --dump
       env:
-        CC: ${{ matrix.compiler }}
+        CC: ${{matrix.compiler}}
 
     - name: build
       working-directory: openssl/_build
@@ -67,7 +67,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
+        name: ${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
         path: |
           openssl/_build/**/libcrypto.dylib
           openssl/_build/**/libssl.dylib
@@ -80,7 +80,7 @@ jobs:
         retention-days: 2
 
   windows:
-    name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
+    name: ${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
     runs-on: ${{matrix.os}}
     strategy:
       fail-fast: false
@@ -107,7 +107,7 @@ jobs:
     - uses: ilammy/setup-nasm@v1
     - uses: ilammy/msvc-dev-cmd@v1
       with:
-        arch: ${{ matrix.arch }}
+        arch: ${{matrix.arch}}
 
     - name: prepare the build directory
       run: mkdir openssl/_build
@@ -115,12 +115,29 @@ jobs:
     - name: configure
       working-directory: openssl/_build
       run: |
-        perl ..\Configure --banner=Configured no-makedepend shared no-fips ${{ matrix.configure_name }} /${{ matrix.opt }} /Zi /nologo
+        perl ..\Configure --banner=Configured `
+            --prefix=${{github.workspace}}\install `
+            --openssldir=${{github.workspace}}\install\ssl `
+            no-makedepend shared no-fips `
+            ${{matrix.configure_name}} `
+            /${{matrix.opt}} /Zi /nologo 
         perl configdata.pm --dump
 
     - name: build
       working-directory: openssl/_build
       run: nmake /NOLOGO
+
+    - name: install
+      working-directory: openssl/_build
+      run: nmake /NOLOGO install
+
+    - name: Save install files
+      uses: actions/cache/save@v3
+      if: runner.os == 'Windows'
+      id: cache-openssl-save
+      with:
+        path: install
+        key: openssl_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
 
     - name: test
       if: ${{ env.RUN_TESTS == 'true' }}
@@ -130,7 +147,7 @@ jobs:
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}
+        name: ${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
         path: |
           openssl/_build/libcrypto*.dll
           openssl/_build/libcrypto*.pdb
