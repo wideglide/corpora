@@ -23,7 +23,7 @@ jobs:
         build:
         - name: OpenSSL
           install: nghttp2 openssl
-          generate: -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON
+          generate: -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON
         - name: libssh2
           install: nghttp2 openssl libssh2
           generate: -DOPENSSL_ROOT_DIR=/usr/local/opt/openssl -DCURL_USE_LIBSSH2=ON
@@ -35,7 +35,9 @@ jobs:
       with:
         repository: curl/curl
 
-    - run: cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
+    - run: |
+        cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{ matrix.opt }}/' build/CMakeCache.txt
       name: 'cmake generate'
       env: ${{ matrix.compiler }}
 
@@ -118,6 +120,65 @@ jobs:
         path: |
           build/lib/libcurl.so
           build/src/curl
+        retention-days: 2
+
+  cmake_windows:
+    name: ${{ format('{0}_{1}_{2}_{3}_{4}', matrix.os, matrix.arch, matrix.compiler.CC, matrix.opt, matrix.build.name) }}
+    runs-on: ${{ matrix.os }}
+    env: ${{ matrix.compiler }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022]
+        arch: [x86_64]
+        opt: [O1]
+        compiler:
+        - CC: cl
+          CXX: cl
+          CFLAGS: "-Wno-deprecated-declarations -g"
+        - CC: gcc
+          CXX: g++
+          CFLAGS: "-Wno-error=undef -Wno-error=conversion -g"
+        build:
+        - name: schannel
+          generate: -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DCURL_USE_SCHANNEL=ON
+        - name: libssh2
+          install_ubuntu: libssl-dev libssh2-1-dev zlib1g-dev libnghttp2-dev
+          generate: -DCURL_USE_LIBSSH2=ON
+        include:
+          - os: windows-2022
+            sed: C:\msys64\usr\bin\sed.exe -i
+    steps:
+    - uses: lukka/get-cmake@latest
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        repository: curl/curl
+
+    - run: |
+        cmake --version
+        cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF -DCMAKE_INSTALL_PREFIX=./install ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{ matrix.opt }}/' build/CMakeCache.txt
+        where grep || echo NO GREP
+        where sed || echo NO SED
+      name: 'cmake generate'
+
+    - run: cmake --build build --verbose
+      name: 'cmake build'
+
+    - run: cmake --install build --verbose
+      name: 'cmake install'
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler.CC}}_${{ matrix.opt }}_${{ matrix.build.name }}
+        path: |
+          build/**/libcurl.dll
+          build/**/libcurl.pdb
+          build/**/curl.exe
+          build/**/curl.pdb
         retention-days: 2
 
   combine:
