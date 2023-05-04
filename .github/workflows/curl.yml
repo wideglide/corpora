@@ -163,11 +163,16 @@ jobs:
         arch: ${{ matrix.arch || 'x64' }}
         vsversion: '2022'
 
+    - name: Restore cache files
+      id: cache-zlib-restore
+      uses: actions/cache/save@v3
+      with:
+        path: install
+        key: ${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.compiler }}_${{ matrix.opt }}_zlib
+
     - run: |
         cmake --version
-        where grep || echo NO GREP
-        where sed || echo NO SED
-        cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF -DCMAKE_INSTALL_PREFIX=.\install ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
+        cmake -S. -Bbuild -GNinja -DPICKY_COMPILER=OFF -DCMAKE_INSTALL_PREFIX=install ${{ matrix.build.generate }} -DCMAKE_BUILD_TYPE=RelWithDebInfo
         ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{ matrix.opt }}/' build/CMakeCache.txt
       name: 'cmake generate'
 
