@@ -146,7 +146,7 @@ jobs:
         - name: schannel
           generate: -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DCURL_USE_SCHANNEL=ON
         - name: libssh2
-          generate: -DCURL_USE_LIBSSH2=ON -DZLIB_ROOT=install -DOPENSSL_ROOT_DIR=install -DCURL_USE_OPENSSL
+          generate: -DCURL_USE_LIBSSH2=ON -DZLIB_ROOT=install -DOPENSSL_ROOT_DIR=install -DCURL_USE_OPENSSL=ON
     steps:
     - uses: lukka/get-cmake@latest
 
