@@ -24,22 +24,16 @@ jobs:
             compiler: cl
             arch: x86
             opt: O1
-            sed: C:\msys64\usr\bin\sed.exe -i
 
           - os: windows-2022
             compiler: cl
             arch: x86
             opt: O2
-            sed: C:\msys64\usr\bin\sed.exe -i
 
           - os: windows-2022
             compiler: cl
             arch: x86_64
             opt: O1
-            sed: C:\msys64\usr\bin\sed.exe -i
-
-          - os: windows-2022
-            sed: C:\msys64\usr\bin\sed.exe -i
 
           - os: macos-12
             compiler: gcc-11
@@ -70,7 +64,7 @@ jobs:
       run: |
         ${{matrix.compiler}} --version
         cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} -GNinja -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
-        ${{ matrix.sed || 'sed -i -e' }} '/CMAKE_C_FLAGS/s/O[0123sd]/${{matrix.opt}}/' ${{ matrix.build-dir || '.' }}/CMakeCache.txt
+        sed -i -e '/CMAKE_C_FLAGS/s/O[0123sd]/${{matrix.opt}}/' ${{ matrix.build-dir || '.' }}/CMakeCache.txt
         ninja --version || echo NO NINJA
       env:
         CC: ${{matrix.compiler}}

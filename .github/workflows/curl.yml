@@ -168,6 +168,9 @@ jobs:
       with:
         path: install
         key: zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}_${{matrix.opt}}
+        restore-keys: |
+          zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}
+          zlib_${{matrix.os}}_${{matrix.arch}}
 
     - name: Restore cache files (openssl)
       id: cache-openssl-restore
@@ -175,6 +178,9 @@ jobs:
       with:
         path: install
         key: openssl_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}_${{matrix.opt}}
+        restore-keys: |
+          openssl_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}
+          openssl_${{matrix.os}}_${{matrix.arch}}
 
     - run: |
         cmake --version
