@@ -42,6 +42,7 @@ jobs:
         shell: [bash]
         include:
           - os: windows-2022
+            arch: x86_64
             configure_name: mingw64
             compiler: gcc
             opt: O1
