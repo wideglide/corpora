@@ -44,6 +44,7 @@ jobs:
           - os: windows-2022
             configure_name: mingw64
             compiler: gcc
+            opt: O1
             shell: msys2 {0}
     steps:
     - name: setup mingw (Windows)
