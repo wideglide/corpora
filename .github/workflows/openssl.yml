@@ -7,7 +7,17 @@
 
 name: OpenSSL
 
-on: [workflow_dispatch]
+on:
+  push:
+    paths:
+      - .github/workflows/openssl.yml
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run tests after build'
+        required: true
+        default: false
+        type: boolean
 
 env:
   RUN_TESTS: false
@@ -19,6 +29,9 @@ jobs:
   unix:
     name: ${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
     runs-on: ${{matrix.os}}
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -26,6 +39,10 @@ jobs:
         compiler: [gcc-11, clang]
         arch: [x86_64]
         opt: [O1, O2]
+        include:
+          - os: windows-2022
+            configure_name: mingw64
+            compiler: gcc
     steps:
     - name: Checkout openssl
       uses: actions/checkout@v3
@@ -35,12 +52,15 @@ jobs:
         ref: openssl-3.0.8
 
     - name: prepare the build directory
-      run: mkdir openssl/_build
+      run:
+        mkdir openssl/_build
+        which ${{matrix.compiler}}
+        ${{matrix.compiler}} --version
 
     - name: configure
       working-directory: openssl/_build
       run: |
-        ../config --banner=Configured enable-fips shared \
+        ../Configure --banner=Configured enable-fips shared \
             -g -${{matrix.opt}}
         sed -i -e '/FLAGS/s/-O[0123s]/-${{matrix.opt}}/' ${{ matrix.build-dir || '.' }}/Makefile
         ./configdata.pm --dump
@@ -77,6 +97,12 @@ jobs:
           openssl/_build/**/libssl.dylib.dwarf
           openssl/_build/**/libcrypto*.so
           openssl/_build/**/libssl*.so
+          openssl/_build/libcrypto*.dll
+          openssl/_build/libcrypto*.pdb
+          openssl/_build/libssl*.dll
+          openssl/_build/libssl*.pdb
+          openssl/_build/**/openssl*.exe
+          openssl/_build/**/openssl*.pdb
         retention-days: 2
 
   windows:
@@ -88,12 +114,14 @@ jobs:
         os: [windows-2022]
         compiler: [cl]
         opt: [O1]
-        arch: [x86_64, x86]
+        arch: [x86_64]
         include:
           - os: windows-2022
             configure_name: VC-WIN64A
+            compiler: cl
           - os: windows-2022
             configure_name: VC-WIN32
+            compiler: cl
             arch: x86
     steps:
     - name: Checkout openssl
@@ -106,6 +134,7 @@ jobs:
     - uses: shogo82148/actions-setup-perl@v1
     - uses: ilammy/setup-nasm@v1
     - uses: ilammy/msvc-dev-cmd@v1
+      if: ${{matrix.compiler == 'cl'}}
       with:
         arch: ${{matrix.arch}}
 
@@ -120,8 +149,10 @@ jobs:
             --openssldir=${{github.workspace}}\install\ssl `
             no-makedepend shared no-fips `
             ${{matrix.configure_name}} `
-            /${{matrix.opt}} /Zi /nologo 
+            /${{matrix.opt}} /Zi /nologo
         perl configdata.pm --dump
+      env:
+        CC: ${{matrix.compiler}}
 
     - name: build
       working-directory: openssl/_build
@@ -164,7 +195,7 @@ jobs:
     steps:
     - name: Download artifacts
       uses: actions/download-artifact@v3
-      with: 
+      with:
         path: openssl
 
     - name: Show downloaded files
