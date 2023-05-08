@@ -39,7 +39,7 @@ jobs:
         compiler: [gcc-11, clang]
         arch: [x86_64]
         opt: [O1, O2]
-        shell: bash
+        shell: [bash]
         include:
           - os: windows-2022
             configure_name: mingw64
