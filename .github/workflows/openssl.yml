@@ -31,7 +31,7 @@ jobs:
     runs-on: ${{matrix.os}}
     defaults:
       run:
-        shell: bash
+        shell: ${{matrix.shell}}
     strategy:
       fail-fast: false
       matrix:
@@ -39,11 +39,16 @@ jobs:
         compiler: [gcc-11, clang]
         arch: [x86_64]
         opt: [O1, O2]
+        shell: bash
         include:
           - os: windows-2022
             configure_name: mingw64
             compiler: gcc
+            shell: msys2 {0}
     steps:
+    - name: setup mingw (Windows)
+      uses: msys2/setup-msys2@v2
+
     - name: Checkout openssl
       uses: actions/checkout@v3
       with:
