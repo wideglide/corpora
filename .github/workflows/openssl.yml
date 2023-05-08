@@ -92,6 +92,14 @@ jobs:
         dsymutil *.dylib
         ls -lah *.dylib.*
 
+    - name: Save install files
+      uses: actions/cache/save@v3
+      if: runner.os == 'Windows'
+      id: cache-openssl-save
+      with:
+        path: install
+        key: openssl_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
+
     - name: make test
       if: ${{ env.RUN_TESTS == 'true' }}
       working-directory: openssl/_build
