@@ -52,7 +52,7 @@ jobs:
         ref: openssl-3.0.8
 
     - name: prepare the build directory
-      run:
+      run: |
         mkdir openssl/_build
         which ${{matrix.compiler}}
         ${{matrix.compiler}} --version
