@@ -47,7 +47,10 @@ jobs:
             shell: msys2 {0}
     steps:
     - name: setup mingw (Windows)
+      if: runner.os == 'Windows'
       uses: msys2/setup-msys2@v2
+      with:
+        release: false
 
     - name: Checkout openssl
       uses: actions/checkout@v3
