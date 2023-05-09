@@ -74,6 +74,8 @@ jobs:
       working-directory: openssl/_build
       run: |
         ../Configure --banner=Configured enable-fips shared \
+            --prefix=${{github.workspace}}\install \
+            --openssldir=${{github.workspace}}\install\ssl \
             -g -${{matrix.opt}}
         sed -i -e '/FLAGS/s/-O[0123s]/-${{matrix.opt}}/' ${{ matrix.build-dir || '.' }}/Makefile
         ./configdata.pm --dump
@@ -83,6 +85,10 @@ jobs:
     - name: build
       working-directory: openssl/_build
       run: make -j4
+
+    - name: install
+      working-directory: openssl/_build
+      run: make install
 
     - name: Save debug info
       if: runner.os == 'macOS'
