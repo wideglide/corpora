@@ -183,8 +183,10 @@ jobs:
       with:
         install: >-
           base-devel
+          cmake
           mingw-w64-x86_64-gcc
           nasm
+          ninja
 
     - name: Restore cache files (zlib)
       id: cache-zlib-restore
