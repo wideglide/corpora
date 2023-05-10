@@ -139,6 +139,9 @@ jobs:
   cmake_windows:
     name: ${{ format('{0}_{1}_{2}_{3}_{4}', matrix.os, matrix.arch, matrix.compiler.CC, matrix.opt, matrix.build.name) }}
     runs-on: ${{matrix.os}}
+    defaults:
+      run:
+        shell: ${{matrix.compiler.SHELL}}
     env: ${{matrix.compiler}}
     strategy:
       fail-fast: false
@@ -149,9 +152,11 @@ jobs:
         compiler:
         - CC: cl
           CXX: cl
+          SHELL: pwsh
         - CC: gcc
           CXX: g++
           CFLAGS: "-Wno-error=undef -Wno-error=conversion -g"
+          SHELL: msys2 {0}
         build:
         - name: schannel
           generate: -DCURL_DISABLE_LDAP=ON -DCURL_DISABLE_LDAPS=ON -DCURL_USE_SCHANNEL=ON
@@ -167,10 +172,19 @@ jobs:
 
     - name: Setup MSVC-CMD (Windows)
       uses: ilammy/msvc-dev-cmd@v1
-      if: runner.os == 'Windows'
+      if: ${{ (runner.os == 'Windows') && (matrix.compiler == 'cl') }}
       with:
         arch: ${{ matrix.arch || 'x64' }}
         vsversion: '2022'
+
+    - name: setup mingw (Windows)
+      if: ${{ (runner.os == 'Windows') && (matrix.compiler == 'gcc')}}
+      uses: msys2/setup-msys2@v2
+      with:
+        install: >-
+          base-devel
+          mingw-w64-x86_64-gcc
+          nasm
 
     - name: Restore cache files (zlib)
       id: cache-zlib-restore
