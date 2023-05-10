@@ -172,13 +172,13 @@ jobs:
 
     - name: Setup MSVC-CMD (Windows)
       uses: ilammy/msvc-dev-cmd@v1
-      if: ${{ (runner.os == 'Windows') && (matrix.compiler == 'cl') }}
+      if: ${{ (runner.os == 'Windows') && (matrix.compiler.CC == 'cl') }}
       with:
         arch: ${{ matrix.arch || 'x64' }}
         vsversion: '2022'
 
     - name: setup mingw (Windows)
-      if: ${{ (runner.os == 'Windows') && (matrix.compiler == 'gcc')}}
+      if: ${{ (runner.os == 'Windows') && (matrix.compiler.CC == 'gcc')}}
       uses: msys2/setup-msys2@v2
       with:
         install: >-
