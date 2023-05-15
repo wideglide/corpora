@@ -39,6 +39,9 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         brew install autoconf automake pkg-config
+      env:
+        HOMEBREW_NO_INSTALL_CLEANUP: 1
+        HOMEBREW_NO_INSTALL_UPGRADE: 1
 
     - name: prepare the build directory
       run: |
@@ -65,10 +68,18 @@ jobs:
       working-directory: build
       run: make install
 
+    - name: Save debug info
+      if: runner.os == 'macOS'
+      working-directory: build/.libs
+      run: |
+        dsymutil --flat *.dylib
+        dsymutil *.dylib
+        ls -lah *.dylib.*
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: ${{matrix.os}}_${{matrix.arch}}_${{ matrix.compiler.CC}}_${{matrix.opt}}
+        name: ${{matrix.os}}_${{matrix.arch}}_${{ matrix.compiler}}_${{matrix.opt}}
         path: |
           build/**/libxml2.dylib
           build/**/libxml2.dylib.dSYM
