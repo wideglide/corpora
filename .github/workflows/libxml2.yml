@@ -16,6 +16,60 @@ env:
   BUILD_TYPE: RelWithDebInfo
 
 jobs:
+  unix:
+    name: ${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
+    runs-on: ${{matrix.os}}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-12, ubuntu-22.04]
+        compiler: [gcc-11, clang]
+        arch: [x86_64]
+        opt: [O1, O2]
+        shell: [bash]
+        base_config:  --with-ftp --with-legacy --with-xptr-locs
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        repository: GNOME/libxml2
+
+    - name: prepare the build directory
+      run: |
+        mkdir build
+        which ${{matrix.compiler}}
+        ${{matrix.compiler}} --version
+
+    - name: configure
+      working-directory: build
+      run: |
+        sh ../autogen.sh ${{matrx.base_config}}
+      env:
+        CC: ${{matrix.compiler}}
+        CFLAGS: -${{matrix.opt}}
+
+    - name: build
+      working-directory: build
+      run: make -j4 V=1 CFLAGS="-${{matrx.opt}}"
+      env:
+        CC: ${{matrix.compiler}}
+
+    - name: install
+      working-directory: build
+      run: make install
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{matrix.os}}_${{matrix.arch}}_${{ matrix.compiler.CC}}_${{matrix.opt}}
+        path: |
+          build/**/libxml2.dylib
+          build/**/libxml2.dylib.dSYM
+          build/**/libxml2.dylib.dwarf
+          build/**/libxml2.so
+        retention-days: 2
+
+
   cmake_windows:
     name: ${{ format('{0}_{1}_{2}_{3}_{4}', matrix.os, matrix.arch, matrix.compiler.CC, matrix.opt, matrix.build.name) }}
     runs-on: ${{matrix.os}}
@@ -76,16 +130,6 @@ jobs:
           zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}
           zlib_${{matrix.os}}_${{matrix.arch}}
 
-    - name: Restore cache files (openssl)
-      id: cache-openssl-restore
-      uses: actions/cache/restore@v3
-      with:
-        path: install
-        key: openssl_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}_${{matrix.opt}}
-        restore-keys: |
-          openssl_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}
-          openssl_${{matrix.os}}_${{matrix.arch}}
-
     - run: |
         cmake --version
         cmake -S. -Bbuild -GNinja -DCMAKE_INSTALL_PREFIX=install ${{matrix.build.generate}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
@@ -103,8 +147,28 @@ jobs:
       with:
         name: ${{matrix.os}}_${{matrix.arch}}_${{ matrix.compiler.CC}}_${{matrix.opt}}_${{matrix.build.name}}
         path: |
-          build/**/libxml*.dll
-          build/**/libxml*.pdb
+          build/**/libxml2.dll
+          build/**/libxml2.pdb
         retention-days: 2
 
+
+  combine:
+    name: Combine artifacts
+    needs: [unix, cmake_windows]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download artifacts
+      uses: actions/download-artifact@v3
+      with:
+        path: libxml2
+
+    - name: Show downloaded files
+      run: find libxml2 -type f -ls
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: libxml2-builds
+        path: libxml2/**
+        retention-days: 7
 
