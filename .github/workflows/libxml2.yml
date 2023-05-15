@@ -27,7 +27,7 @@ jobs:
         arch: [x86_64]
         opt: [O1, O2]
         shell: [bash]
-        base_config:  --with-ftp --with-legacy --with-xptr-locs
+        base_config: ["--with-ftp --with-legacy --with-xptr-locs"]
 
     steps:
     - name: Checkout repository
