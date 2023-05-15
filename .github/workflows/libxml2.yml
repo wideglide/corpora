@@ -46,7 +46,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v3
       with:
-        repository: curl/curl
+        repository: GNOME/libxml2
 
     - name: Setup MSVC-CMD (Windows)
       uses: ilammy/msvc-dev-cmd@v1
@@ -103,10 +103,8 @@ jobs:
       with:
         name: ${{matrix.os}}_${{matrix.arch}}_${{ matrix.compiler.CC}}_${{matrix.opt}}_${{matrix.build.name}}
         path: |
-          build/**/libcurl.dll
-          build/**/libcurl.pdb
-          build/**/curl.exe
-          build/**/curl.pdb
+          build/**/libxml*.dll
+          build/**/libxml*.pdb
         retention-days: 2
 
 
