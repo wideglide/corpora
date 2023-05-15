@@ -35,6 +35,11 @@ jobs:
       with:
         repository: GNOME/libxml2
 
+    - name: 'install prereqs'
+      if: runner.os == 'macOS'
+      run: |
+        brew install autoconf automake pkg-config
+
     - name: prepare the build directory
       run: |
         mkdir build
@@ -44,7 +49,7 @@ jobs:
     - name: configure
       working-directory: build
       run: |
-        sh ../autogen.sh ${{matrix.base_config}}
+        sh ../autogen.sh ${{matrix.base_config}} --prefix=../install
       env:
         CC: ${{matrix.compiler}}
         CFLAGS: -${{matrix.opt}}
