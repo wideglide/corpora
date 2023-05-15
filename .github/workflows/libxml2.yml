@@ -49,7 +49,7 @@ jobs:
     - name: configure
       working-directory: build
       run: |
-        sh ../autogen.sh ${{matrix.base_config}} --prefix=../install
+        sh ../autogen.sh ${{matrix.base_config}} --prefix=${GITHUB_WORKSPACE//\\//}/install
       env:
         CC: ${{matrix.compiler}}
         CFLAGS: -${{matrix.opt}}
