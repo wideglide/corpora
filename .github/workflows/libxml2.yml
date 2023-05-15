@@ -53,6 +53,7 @@ jobs:
       env:
         CC: ${{matrix.compiler}}
         CFLAGS: -${{matrix.opt}}
+        PYTHON: python3
 
     - name: build
       working-directory: build
