@@ -45,6 +45,11 @@ jobs:
             arch: x86_64
             opt: O1
 
+          - os: windows-2022
+            compiler: cl
+            arch: amd64_arm64
+            opt: O1
+
           - os: macos-12
             compiler: gcc-11
             arch: x86_64
@@ -54,6 +59,12 @@ jobs:
             compiler: gcc-11
             arch: x86_64
             opt: O2
+
+          - os: macos-12
+            compiler: clang
+            arch: arm64
+            opt: O1
+            generate: -DCMAKE_OSX_ARCHITECTURES=arm64
 
     steps:
     - name: Checkout repository
@@ -73,7 +84,7 @@ jobs:
     - name: Generate project files
       run: |
         ${{matrix.compiler}} --version
-        cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} -GNinja -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        cmake -S ${{ matrix.src-dir || '.' }} -B ${{ matrix.build-dir || '.' }} -GNinja -DCMAKE_INSTALL_PREFIX=install -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} ${{matrix.generate}}
         sed -i -e '/CMAKE_C_FLAGS/s/O[0123sd]/${{matrix.opt}}/' ${{ matrix.build-dir || '.' }}/CMakeCache.txt
         ninja --version || echo NO NINJA
       env:

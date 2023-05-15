@@ -1,0 +1,112 @@
+name: libxml2-CMake
+
+on:
+  push:
+    paths:
+      - .github/workflows/curl.yml
+  workflow_dispatch:
+    inputs:
+      run_tests:
+        description: 'Run tests after build'
+        required: true
+        default: false
+        type: boolean
+
+env:
+  BUILD_TYPE: RelWithDebInfo
+
+jobs:
+  cmake_windows:
+    name: ${{ format('{0}_{1}_{2}_{3}_{4}', matrix.os, matrix.arch, matrix.compiler.CC, matrix.opt, matrix.build.name) }}
+    runs-on: ${{matrix.os}}
+    defaults:
+      run:
+        shell: ${{matrix.compiler.SHELL}}
+    env: ${{matrix.compiler}}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022]
+        arch: [x86_64]
+        opt: [O1]
+        compiler:
+        - CC: cl
+          CXX: cl
+          SHELL: pwsh
+        - CC: gcc
+          CXX: g++
+          CFLAGS: "-Wno-error=undef -Wno-error=conversion -g"
+          SHELL: msys2 {0}
+        build:
+        - name: libxml2
+          generate: -DLIBXML2_WITH_ICONV=OFF -DLIBXML2_WITH_LZMA=OFF -DLIBXML2_WITH_PYTHON=OFF
+    steps:
+    - uses: lukka/get-cmake@latest
+
+    - name: Checkout repository
+      uses: actions/checkout@v3
+      with:
+        repository: curl/curl
+
+    - name: Setup MSVC-CMD (Windows)
+      uses: ilammy/msvc-dev-cmd@v1
+      if: ${{ (runner.os == 'Windows') && (matrix.compiler.CC == 'cl') }}
+      with:
+        arch: ${{ matrix.arch || 'x64' }}
+        vsversion: '2022'
+
+    - name: setup mingw (Windows)
+      if: ${{ (runner.os == 'Windows') && (matrix.compiler.CC == 'gcc')}}
+      uses: msys2/setup-msys2@v2
+      with:
+        install: >-
+          base-devel
+          mingw-w64-x86_64-gcc
+          mingw-w64-x86_64-cmake
+          nasm
+          ninja
+
+    - name: Restore cache files (zlib)
+      id: cache-zlib-restore
+      uses: actions/cache/restore@v3
+      with:
+        path: install
+        key: zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}_${{matrix.opt}}
+        restore-keys: |
+          zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}
+          zlib_${{matrix.os}}_${{matrix.arch}}
+
+    - name: Restore cache files (openssl)
+      id: cache-openssl-restore
+      uses: actions/cache/restore@v3
+      with:
+        path: install
+        key: openssl_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}_${{matrix.opt}}
+        restore-keys: |
+          openssl_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}
+          openssl_${{matrix.os}}_${{matrix.arch}}
+
+    - run: |
+        cmake --version
+        cmake -S. -Bbuild -GNinja -DCMAKE_INSTALL_PREFIX=install ${{matrix.build.generate}} -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+        sed -i -e '/CMAKE_C_FLAGS/s/O[0123sd]/${{matrix.opt}}/' build/CMakeCache.txt
+      name: 'cmake generate'
+
+    - run: cmake --build build --verbose
+      name: 'cmake build'
+
+    - run: cmake --install build --verbose
+      name: 'cmake install'
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: ${{matrix.os}}_${{matrix.arch}}_${{ matrix.compiler.CC}}_${{matrix.opt}}_${{matrix.build.name}}
+        path: |
+          build/**/libcurl.dll
+          build/**/libcurl.pdb
+          build/**/curl.exe
+          build/**/curl.pdb
+        retention-days: 2
+
+
