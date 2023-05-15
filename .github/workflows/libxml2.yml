@@ -44,14 +44,14 @@ jobs:
     - name: configure
       working-directory: build
       run: |
-        sh ../autogen.sh ${{matrx.base_config}}
+        sh ../autogen.sh ${{matrix.base_config}}
       env:
         CC: ${{matrix.compiler}}
         CFLAGS: -${{matrix.opt}}
 
     - name: build
       working-directory: build
-      run: make -j4 V=1 CFLAGS="-${{matrx.opt}}"
+      run: make -j4 V=1 CFLAGS="-${{matrix.opt}}"
       env:
         CC: ${{matrix.compiler}}
 
