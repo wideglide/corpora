@@ -3,7 +3,7 @@ name: libxml2-CMake
 on:
   push:
     paths:
-      - .github/workflows/curl.yml
+      - .github/workflows/libxml2.yml
   workflow_dispatch:
     inputs:
       run_tests:
