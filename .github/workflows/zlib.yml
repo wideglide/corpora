@@ -11,7 +11,7 @@ on:
         required: true
         default: false
         type: boolean
-      repo_ref:
+      build_ref:
         description: 'The branch, tag or SHA to checkout'
         default: 'v1.2.13'
         type: string
@@ -19,6 +19,7 @@ on:
 
 env:
   BUILD_TYPE: RelWithDebInfo
+  build_ref: 'v1.2.13'
 
 jobs:
   ci-cmake:
@@ -76,7 +77,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: madler/zlib
-        ref: ${{ inputs.repo_ref || 'v1.2.13' }}
+        ref: ${{ inputs.build_ref || env.build_ref }}
 
     - uses: lukka/get-cmake@latest
 
@@ -108,7 +109,7 @@ jobs:
       id: cache-zlib-save
       with:
         path: install
-        key: zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
+        key: zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}_${{env.build_ref}}
 
     - name: Save debug info
       if: runner.os == 'macOS'
@@ -143,18 +144,18 @@ jobs:
     - name: Download artifacts
       uses: actions/download-artifact@v3
       with:
-        path: builds
+        path: zlib
 
     - name: Show downloaded files
-      run: find builds -type f -ls
+      run: find zlib -type f -ls
 
     - name: Show file types
-      run: find libxml2 -type f -exec file {} \;
+      run: find zlib -type f -exec file {} \;
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: zlib-builds
-        path: builds/**
+        name: zlib-builds_${{inputs.build_ref || env.build_ref }}
+        path: zlib/**
         retention-days: 7
 
