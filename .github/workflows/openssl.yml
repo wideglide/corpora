@@ -6,6 +6,7 @@
 # https://www.openssl.org/source/license.html
 
 name: OpenSSL
+run-name: OpenSSL ${{inputs.build_ref || github.event.head_commit.message}}
 
 on:
   push:
@@ -18,9 +19,14 @@ on:
         required: true
         default: false
         type: boolean
+      build_ref:
+        description: 'The branch, tag or SHA to checkout'
+        default: 'openssl-3.0.8'
+        type: string
 
 env:
   RUN_TESTS: false
+  build_ref: 'openssl-3.0.8'
 
 permissions:
   contents: read
@@ -107,7 +113,7 @@ jobs:
         key: openssl_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
 
     - name: make test
-      if: ${{ env.RUN_TESTS == 'true' }}
+      if: ${{inputs.run_tests}}
       working-directory: openssl/_build
       run: make test HARNESS_JOBS=${HARNESS_JOBS:-4}
 
@@ -156,7 +162,7 @@ jobs:
       with:
         repository: openssl/openssl
         path: openssl
-        ref: openssl-3.0.8
+        ref: ${{ inputs.build_ref || env.build_ref }}
 
     - uses: shogo82148/actions-setup-perl@v1
     - uses: ilammy/setup-nasm@v1
@@ -195,10 +201,10 @@ jobs:
       id: cache-openssl-save
       with:
         path: install
-        key: openssl_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}
+        key: openssl_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler}}_${{matrix.opt}}_${{env.build_ref}}
 
     - name: test
-      if: ${{ env.RUN_TESTS == 'true' }}
+      if: ${{inputs.run_tests}}
       working-directory: openssl/_build
       run: nmake test VERBOSE_FAILURE=yes HARNESS_JOBS=4
 
@@ -228,10 +234,13 @@ jobs:
     - name: Show downloaded files
       run: find openssl -type f -ls
 
+    - name: Show file types
+      run: find openssl -type f -exec file {} \;
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: openssl-builds
+        name: openssl-builds_${{ inputs.build_ref || env.build_ref }}
         path: openssl/**
         retention-days: 7
 
