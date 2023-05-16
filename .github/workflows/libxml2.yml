@@ -1,5 +1,5 @@
 name: libxml2
-run-name: libxml2 ${{inputs.build_ref || env.build_ref}} ${{github.event.head_commit.message}}
+run-name: libxml2 ${{inputs.build_ref || github.event.head_commit.message}}
 
 on:
   push:
