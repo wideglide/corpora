@@ -1,4 +1,5 @@
-name: libxml2-CMake
+name: libxml2
+run-name: libxml2 ${{inputs.build_ref || env.build_ref}} ${{github.event.head_commit.message}}
 
 on:
   push:
@@ -11,9 +12,15 @@ on:
         required: true
         default: false
         type: boolean
+      build_ref:
+        description: 'The branch, tag or SHA to checkout'
+        default: ''
+        type: string
 
 env:
   BUILD_TYPE: RelWithDebInfo
+  build_ref: 'v2.9.14'
+  zlib_ref: 'v1.2.13'
 
 jobs:
   unix:
@@ -34,6 +41,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: GNOME/libxml2
+        ref: ${{ inputs.build_ref || env.build_ref }}
 
     - name: 'install prereqs'
       if: runner.os == 'macOS'
@@ -55,12 +63,12 @@ jobs:
         sh ../autogen.sh ${{matrix.base_config}} --prefix=${GITHUB_WORKSPACE//\\//}/install
       env:
         CC: ${{matrix.compiler}}
-        CFLAGS: -${{matrix.opt}}
+        CFLAGS: -g -${{matrix.opt}}
         PYTHON: python3
 
     - name: build
       working-directory: build
-      run: make -j4 V=1 CFLAGS="-${{matrix.opt}}"
+      run: make -j4 V=1 CFLAGS="-g -${{matrix.opt}}"
       env:
         CC: ${{matrix.compiler}}
 
@@ -119,6 +127,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: GNOME/libxml2
+        ref: ${{ inputs.build_ref || env.build_ref }}
 
     - name: Setup MSVC-CMD (Windows)
       uses: ilammy/msvc-dev-cmd@v1
@@ -143,8 +152,9 @@ jobs:
       uses: actions/cache/restore@v3
       with:
         path: install
-        key: zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}_${{matrix.opt}}
+        key: zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}_${{matrix.opt}}_${{env.zlib_ref}}
         restore-keys: |
+          zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}_${{matrix.opt}}
           zlib_${{matrix.os}}_${{matrix.arch}}_${{matrix.compiler.CC}}
           zlib_${{matrix.os}}_${{matrix.arch}}
 
@@ -183,10 +193,13 @@ jobs:
     - name: Show downloaded files
       run: find libxml2 -type f -ls
 
+    - name: Show file types
+      run: find libxml2 -type f -exec file {} \;
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: libxml2-builds
+        name: libxml2-builds_${{ inputs.build_ref || env.build_ref }}
         path: libxml2/**
         retention-days: 7
 
