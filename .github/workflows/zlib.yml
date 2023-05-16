@@ -11,6 +11,11 @@ on:
         required: true
         default: false
         type: boolean
+      repo_ref:
+        description: 'The branch, tag or SHA to checkout'
+        default: 'v1.2.13'
+        type: string
+
 
 env:
   BUILD_TYPE: RelWithDebInfo
@@ -71,6 +76,7 @@ jobs:
       uses: actions/checkout@v3
       with:
         repository: madler/zlib
+        ref: ${{inputs.repo_ref}}
 
     - uses: lukka/get-cmake@latest
 
